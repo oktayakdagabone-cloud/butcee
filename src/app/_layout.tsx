@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import {
   Modal,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -117,13 +118,11 @@ function Header() {
             navigateTo("/")
           }
         >
-          <Text
-            style={
-              styles.logo
-            }
-          >
-            Bütçe
-          </Text>
+          <Image
+            source={require("../../assets/images/butce-logo.png")}
+            style={styles.headerLogoImage}
+            resizeMode="contain"
+          />
         </Pressable>
 
         {isDesktop ? (
@@ -408,7 +407,11 @@ function PersonalLock({ onUnlock }: { onUnlock: (userId: string) => void }) {
   return (
     <View style={styles.lockScreen}>
       <View style={styles.lockCard}>
-        <Text style={styles.lockLogo}>Bütçe</Text>
+        <Image
+          source={require("../../assets/images/butce-logo.png")}
+          style={styles.lockLogoImage}
+          resizeMode="contain"
+        />
         <Text style={styles.lockTitle}>Şifre gerekli</Text>
         <Text style={styles.lockText}>Devam etmek için şifreni gir.</Text>
         <View style={styles.lockInputRow}>
@@ -459,6 +462,11 @@ const styles =
         "900",
       color:
         "#17202A",
+    },
+
+    headerLogoImage: {
+      width: 116,
+      height: 44,
     },
 
     desktopMenu: {
@@ -625,7 +633,7 @@ const styles =
 
     lockScreen: { flex: 1, backgroundColor: "#F7F8FA", alignItems: "center", justifyContent: "center", padding: 24 },
     lockCard: { width: "100%", maxWidth: 420, padding: 24, borderRadius: 20, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E2E8F0" },
-    lockLogo: { fontSize: 26, fontWeight: "900", color: "#17202A" },
+    lockLogoImage: { width: 150, height: 92, alignSelf: "center" },
     lockTitle: { marginTop: 24, fontSize: 24, fontWeight: "900", color: "#17202A" },
     lockText: { marginTop: 6, color: "#64748B" },
     lockInputRow: { minHeight: 52, marginTop: 18, borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 12, flexDirection: "row", alignItems: "center" },

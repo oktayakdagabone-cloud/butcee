@@ -4,7 +4,7 @@
     "slug": "Butcee",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/butce-logo.png",
     "scheme": "butcee",
     "userInterfaceStyle": "automatic",
     "ios": {
