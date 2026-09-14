@@ -10,6 +10,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -23,8 +24,9 @@ import { NotificationProvider } from "./context/NotificationContext";
 import { InstallmentProvider } from "./context/InstallmentContext";
 import { SubscriptionProvider } from "./context/SubscriptionContext";
 import { TransactionProvider } from "./context/TransactionContext";
-import { AuthProvider, useAuth } from "./context/AuthContext";
-import AuthScreen from "./auth";
+import { setActiveStorageUser } from "../lib/userStorage";
+
+const PERSONAL_PASSWORD = "Jacksakalov77";
 
 type NavigationItem = {
   href:
@@ -332,17 +334,20 @@ function Header() {
 }
 
 export default function RootLayout() {
-  return <AuthProvider><AuthenticatedLayout /></AuthProvider>;
+  return <ProtectedLayout />;
 }
 
-function AuthenticatedLayout() {
-  const { user, loading } = useAuth();
+function ProtectedLayout() {
+  const [unlocked, setUnlocked] = useState(false);
 
-  if (loading) return <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Text>Yükleniyor...</Text></View>;
-  if (!user) return <AuthScreen />;
+  if (!unlocked) {
+    return <PersonalLock onUnlock={() => setUnlocked(true)} />;
+  }
+
+  setActiveStorageUser("personal-local");
 
   return (
-    <NotificationProvider key={user.id}>
+    <NotificationProvider key="personal-local">
       <CategoryProvider>
         <AccountProvider>
           <CardProvider>
@@ -367,6 +372,51 @@ function AuthenticatedLayout() {
         </AccountProvider>
       </CategoryProvider>
     </NotificationProvider>
+  );
+}
+
+function PersonalLock({ onUnlock }: { onUnlock: () => void }) {
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+
+  function unlock() {
+    if (password === PERSONAL_PASSWORD) {
+      setError("");
+      onUnlock();
+      return;
+    }
+
+    setError("Şifre yanlış.");
+    setPassword("");
+  }
+
+  return (
+    <View style={styles.lockScreen}>
+      <View style={styles.lockCard}>
+        <Text style={styles.lockLogo}>Bütçe</Text>
+        <Text style={styles.lockTitle}>Şifre gerekli</Text>
+        <Text style={styles.lockText}>Devam etmek için şifreni gir.</Text>
+        <View style={styles.lockInputRow}>
+          <TextInput
+            value={password}
+            onChangeText={(value) => { setPassword(value); setError(""); }}
+            onSubmitEditing={unlock}
+            secureTextEntry={!showPassword}
+            placeholder="Şifre"
+            placeholderTextColor="#94A3B8"
+            style={styles.lockInput}
+          />
+          <Pressable onPress={() => setShowPassword((value) => !value)} style={styles.lockShowButton}>
+            <Text style={styles.lockShowText}>{showPassword ? "Gizle" : "Göster"}</Text>
+          </Pressable>
+        </View>
+        {!!error && <Text style={styles.lockError}>{error}</Text>}
+        <Pressable onPress={unlock} style={styles.lockButton}>
+          <Text style={styles.lockButtonText}>Giriş yap</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -558,4 +608,17 @@ const styles =
       lineHeight: 28,
       color: "#94A3B8",
     },
+
+    lockScreen: { flex: 1, backgroundColor: "#F7F8FA", alignItems: "center", justifyContent: "center", padding: 24 },
+    lockCard: { width: "100%", maxWidth: 420, padding: 24, borderRadius: 20, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E2E8F0" },
+    lockLogo: { fontSize: 26, fontWeight: "900", color: "#17202A" },
+    lockTitle: { marginTop: 24, fontSize: 24, fontWeight: "900", color: "#17202A" },
+    lockText: { marginTop: 6, color: "#64748B" },
+    lockInputRow: { minHeight: 52, marginTop: 18, borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 12, flexDirection: "row", alignItems: "center" },
+    lockInput: { flex: 1, minHeight: 50, paddingHorizontal: 14, color: "#17202A" },
+    lockShowButton: { minHeight: 50, paddingHorizontal: 14, alignItems: "center", justifyContent: "center" },
+    lockShowText: { color: "#2563EB", fontWeight: "800", fontSize: 13 },
+    lockError: { marginTop: 10, color: "#B91C1C", fontWeight: "700" },
+    lockButton: { minHeight: 52, marginTop: 18, borderRadius: 12, backgroundColor: "#16A34A", alignItems: "center", justifyContent: "center" },
+    lockButtonText: { color: "#FFFFFF", fontWeight: "900" },
   });
