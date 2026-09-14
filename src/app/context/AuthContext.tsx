@@ -11,11 +11,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setActiveStorageUser(session?.user.id ?? null);
-      setSession(session);
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        setActiveStorageUser(session?.user.id ?? null);
+        setSession(session);
+      })
+      .catch((error) => {
+        console.error("Oturum yüklenemedi:", error);
+        setActiveStorageUser(null);
+        setSession(null);
+      })
+      .finally(() => setLoading(false));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setActiveStorageUser(nextSession?.user.id ?? null);
       setSession(nextSession);
