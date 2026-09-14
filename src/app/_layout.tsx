@@ -25,8 +25,9 @@ import { InstallmentProvider } from "./context/InstallmentContext";
 import { SubscriptionProvider } from "./context/SubscriptionContext";
 import { TransactionProvider } from "./context/TransactionContext";
 import { setActiveStorageUser } from "../lib/userStorage";
+import { supabase } from "../lib/supabase";
 
-const PERSONAL_PASSWORD = "Jacksakalov77";
+const PERSONAL_ACCOUNT_EMAIL = "oktayakdagabone@gmail.com";
 
 type NavigationItem = {
   href:
@@ -338,16 +339,16 @@ export default function RootLayout() {
 }
 
 function ProtectedLayout() {
-  const [unlocked, setUnlocked] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  if (!unlocked) {
-    return <PersonalLock onUnlock={() => setUnlocked(true)} />;
+  if (!userId) {
+    return <PersonalLock onUnlock={setUserId} />;
   }
 
-  setActiveStorageUser("personal-local");
+  setActiveStorageUser(userId);
 
   return (
-    <NotificationProvider key="personal-local">
+    <NotificationProvider key={userId}>
       <CategoryProvider>
         <AccountProvider>
           <CardProvider>
@@ -375,20 +376,33 @@ function ProtectedLayout() {
   );
 }
 
-function PersonalLock({ onUnlock }: { onUnlock: () => void }) {
+function PersonalLock({ onUnlock }: { onUnlock: (userId: string) => void }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  function unlock() {
-    if (password === PERSONAL_PASSWORD) {
-      setError("");
-      onUnlock();
+  async function unlock() {
+    if (!password) {
+      setError("Şifreni gir.");
       return;
     }
 
-    setError("Şifre yanlış.");
-    setPassword("");
+    try {
+      setBusy(true);
+      setError("");
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email: PERSONAL_ACCOUNT_EMAIL,
+        password,
+      });
+      if (loginError || !data.user) throw loginError ?? new Error("Giriş yapılamadı.");
+      onUnlock(data.user.id);
+    } catch (_error) {
+      setError("Şifre yanlış veya bağlantı kurulamadı.");
+      setPassword("");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -412,8 +426,8 @@ function PersonalLock({ onUnlock }: { onUnlock: () => void }) {
           </Pressable>
         </View>
         {!!error && <Text style={styles.lockError}>{error}</Text>}
-        <Pressable onPress={unlock} style={styles.lockButton}>
-          <Text style={styles.lockButtonText}>Giriş yap</Text>
+        <Pressable disabled={busy} onPress={unlock} style={[styles.lockButton, busy && styles.lockButtonDisabled]}>
+          <Text style={styles.lockButtonText}>{busy ? "Kontrol ediliyor..." : "Giriş yap"}</Text>
         </Pressable>
       </View>
     </View>
@@ -621,4 +635,5 @@ const styles =
     lockError: { marginTop: 10, color: "#B91C1C", fontWeight: "700" },
     lockButton: { minHeight: 52, marginTop: 18, borderRadius: 12, backgroundColor: "#16A34A", alignItems: "center", justifyContent: "center" },
     lockButtonText: { color: "#FFFFFF", fontWeight: "900" },
+    lockButtonDisabled: { opacity: 0.65 },
   });
