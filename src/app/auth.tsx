@@ -3,17 +3,15 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-
 import { supabase } from "../lib/supabase";
 
 const QUESTIONS = ["İlk evcil hayvanının adı nedir?", "İlkokulunun adı nedir?", "En sevdiğin öğretmenin adı nedir?"];
-type Mode = "login" | "register" | "recover" | "verify";
+type Mode = "login" | "register" | "recover";
 
 export default function AuthScreen() {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
-  const [verificationEmail, setVerificationEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [question, setQuestion] = useState(QUESTIONS[0]);
   const [answer, setAnswer] = useState("");
-  const [code, setCode] = useState("");
   const [loadedQuestion, setLoadedQuestion] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -22,18 +20,6 @@ export default function AuthScreen() {
   function switchMode(next: Mode) { setMode(next); setMessage(""); setLoadedQuestion(""); setAnswer(""); }
 
   async function submit() {
-    if (mode === "verify") {
-      if (!code.trim()) return setMessage("E-postana gelen onay kodunu gir.");
-      try {
-        setBusy(true); setMessage("");
-        const { error } = await supabase.auth.verifyOtp({ email: verificationEmail, token: code.trim(), type: "signup" });
-        if (error) throw error;
-        clearLoginFields(); setCode(""); setVerificationEmail(""); setMode("login");
-        setMessage("E-posta onaylandı. Şimdi e-posta ve şifrenle giriş yap.");
-      } catch (error) { setMessage(error instanceof Error ? error.message : "Kod onaylanamadı."); }
-      finally { setBusy(false); }
-      return;
-    }
     if (!email.trim()) return setMessage("E-posta adresini gir.");
     try {
       setBusy(true); setMessage("");
@@ -42,11 +28,10 @@ export default function AuthScreen() {
         if (error) throw error;
       } else if (mode === "register") {
         if (password.length < 8 || !answer.trim()) throw new Error("Şifren en az 8 karakter olmalı ve güvenlik cevabını girmelisin.");
-        const registrationEmail = email.trim();
-        const { error } = await supabase.auth.signUp({ email: registrationEmail, password, options: { data: { security_question: question, security_answer: answer } } });
+        const { error } = await supabase.auth.signUp({ email: email.trim(), password, options: { data: { security_question: question, security_answer: answer } } });
         if (error) throw error;
-        setVerificationEmail(registrationEmail); clearLoginFields(); setAnswer(""); setMode("verify");
-        setMessage("E-posta adresine onay kodu gönderildi. Kodu aşağıya gir.");
+        clearLoginFields(); setAnswer(""); setMode("login");
+        setMessage("Kayıt tamamlandı. E-postana gelen onay bağlantısına bas. Ardından buradan giriş yap.");
       } else if (!loadedQuestion) {
         const { data, error } = await supabase.rpc("get_security_question", { p_email: email.trim() });
         if (error || !data) throw new Error("Bu e-posta için güvenlik sorusu bulunamadı.");
@@ -63,17 +48,17 @@ export default function AuthScreen() {
     finally { setBusy(false); }
   }
 
-  const title = mode === "login" ? "Giriş yap" : mode === "register" ? "Hesap oluştur" : mode === "verify" ? "E-postanı onayla" : "Şifremi unuttum";
+  const title = mode === "login" ? "Giriş yap" : mode === "register" ? "Hesap oluştur" : "Şifremi unuttum";
   return <ScrollView contentContainerStyle={styles.screen}><View style={styles.card}>
     <Text style={styles.logo}>Bütçe</Text><Text style={styles.title}>{title}</Text><Text style={styles.subtitle}>Verilerin yalnızca kendi hesabında saklanır.</Text>
-    {mode === "verify" ? <TextInput value={code} onChangeText={setCode} keyboardType="number-pad" placeholder="E-posta onay kodu" placeholderTextColor="#94A3B8" style={styles.input} /> : <>
+    <>
       <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="E-posta adresi" placeholderTextColor="#94A3B8" style={styles.input} />
       {mode !== "recover" && <View style={styles.passwordRow}><TextInput value={password} onChangeText={setPassword} secureTextEntry={!showPassword} placeholder="Şifre" placeholderTextColor="#94A3B8" style={styles.passwordInput} /><Pressable onPress={() => setShowPassword((value) => !value)} style={styles.showButton}><Text style={styles.showButtonText}>{showPassword ? "Gizle" : "Göster"}</Text></Pressable></View>}
       {mode === "register" && <><Text style={styles.label}>Güvenlik sorusu</Text>{QUESTIONS.map((item) => <Pressable key={item} onPress={() => setQuestion(item)} style={[styles.question, question === item && styles.questionActive]}><Text style={styles.questionText}>{item}</Text></Pressable>)}<TextInput value={answer} onChangeText={setAnswer} placeholder="Cevabın" placeholderTextColor="#94A3B8" style={styles.input} /></>}
       {mode === "recover" && loadedQuestion && <><Text style={styles.label}>{loadedQuestion}</Text><TextInput value={answer} onChangeText={setAnswer} placeholder="Cevabın" placeholderTextColor="#94A3B8" style={styles.input} /></>}
-    </>}
+    </>
     {!!message && <Text style={styles.message}>{message}</Text>}
-    <Pressable disabled={busy} onPress={submit} style={[styles.submit, busy && styles.submitDisabled]}><Text style={styles.submitText}>{busy ? "Bekle..." : mode === "verify" ? "Kodu onayla" : mode === "recover" && !loadedQuestion ? "Soruyu göster" : mode === "recover" ? "Şifre yenileme bağlantısı gönder" : mode === "login" ? "Giriş yap" : "Kayıt ol"}</Text></Pressable>
+    <Pressable disabled={busy} onPress={submit} style={[styles.submit, busy && styles.submitDisabled]}><Text style={styles.submitText}>{busy ? "Bekle..." : mode === "recover" && !loadedQuestion ? "Soruyu göster" : mode === "recover" ? "Şifre yenileme bağlantısı gönder" : mode === "login" ? "Giriş yap" : "Kayıt ol"}</Text></Pressable>
     <View style={styles.links}>{mode !== "login" && <Pressable onPress={() => { clearLoginFields(); switchMode("login"); }}><Text style={styles.link}>Girişe dön</Text></Pressable>}{mode === "login" && <><Pressable onPress={() => switchMode("register")}><Text style={styles.link}>Kayıt ol</Text></Pressable><Pressable onPress={() => switchMode("recover")}><Text style={styles.link}>Şifremi unuttum</Text></Pressable></>}</View>
   </View></ScrollView>;
 }
