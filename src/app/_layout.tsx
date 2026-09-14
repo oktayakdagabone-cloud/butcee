@@ -2,6 +2,8 @@ import {
   Stack,
   router,
 } from "expo-router";
+import { useFonts } from "expo-font";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useState } from "react";
 
@@ -334,6 +336,16 @@ function Header() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts(MaterialCommunityIcons.font);
+
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.fontLoading}>
+        <Text>Yükleniyor...</Text>
+      </View>
+    );
+  }
+
   return <ProtectedLayout />;
 }
 
@@ -632,6 +644,7 @@ const styles =
     },
 
     lockScreen: { flex: 1, backgroundColor: "#F7F8FA", alignItems: "center", justifyContent: "center", padding: 24 },
+    fontLoading: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#F7F8FA" },
     lockCard: { width: "100%", maxWidth: 420, padding: 24, borderRadius: 20, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E2E8F0" },
     lockLogoImage: { width: 150, height: 92, alignSelf: "center" },
     lockTitle: { marginTop: 24, fontSize: 24, fontWeight: "900", color: "#17202A" },
