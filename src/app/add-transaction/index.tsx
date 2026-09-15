@@ -50,7 +50,7 @@ export default function AddTransactionScreen() {
   const { cards } =
     useCards();
 
-  const { getCategoriesByType } =
+  const { getCategoriesByType, addMerchant } =
     useCategories();
 
   const [type, setType] =
@@ -68,6 +68,8 @@ export default function AddTransactionScreen() {
 
   const [description, setDescription] =
     useState("");
+
+  const [merchant, setMerchant] = useState("");
 
   const [categoryId, setCategoryId] =
     useState("");
@@ -568,6 +570,26 @@ export default function AddTransactionScreen() {
                   }
                 </Text>
               </View>
+            </View>
+          )}
+
+          {selectedCategory && type === "expense" && (
+            <View style={styles.merchantBox}>
+              <Text style={styles.merchantTitle}>İş yeri</Text>
+              {(selectedCategory.merchants ?? []).length > 0 && (
+                <View style={styles.merchantChoices}>
+                  {(selectedCategory.merchants ?? []).map((item) => (
+                    <Pressable key={item} onPress={() => { setMerchant(item); setDescription(item); }} style={[styles.merchantChoice, merchant === item && styles.merchantChoiceActive]}>
+                      <Text style={[styles.merchantChoiceText, merchant === item && styles.merchantChoiceTextActive]}>{item}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+              <View style={styles.merchantAddRow}>
+                <TextInput value={merchant} onChangeText={setMerchant} placeholder="Örn. Çukurova Petrol" placeholderTextColor="#AEB4BC" style={styles.merchantInput} />
+                <Pressable onPress={() => { if (merchant.trim()) { addMerchant(selectedCategory.id, merchant); setDescription(merchant.trim()); } }} style={styles.merchantAddButton}><Text style={styles.merchantAddText}>Ekle</Text></Pressable>
+              </View>
+              <Text style={styles.merchantHint}>Seçtiğin veya eklediğin iş yeri işlem açıklamasına yazılır.</Text>
             </View>
           )}
 
@@ -1215,6 +1237,10 @@ export default function AddTransactionScreen() {
 }
 
 const styles = StyleSheet.create({
+  merchantBox: { marginTop: 14, padding: 14, borderRadius: 12, backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: "#E2E8F0" },
+  merchantTitle: { fontWeight: "900", color: "#17202A" }, merchantChoices: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
+  merchantChoice: { paddingHorizontal: 10, minHeight: 34, justifyContent: "center", borderRadius: 9, borderWidth: 1, borderColor: "#CBD5E1", backgroundColor: "#FFFFFF" }, merchantChoiceActive: { borderColor: "#2563EB", backgroundColor: "#EFF6FF" }, merchantChoiceText: { fontSize: 12, fontWeight: "700", color: "#334155" }, merchantChoiceTextActive: { color: "#2563EB" },
+  merchantAddRow: { flexDirection: "row", gap: 8, marginTop: 10 }, merchantInput: { flex: 1, minHeight: 44, borderWidth: 1, borderColor: "#CBD5E1", borderRadius: 9, paddingHorizontal: 11, color: "#17202A", backgroundColor: "#FFFFFF" }, merchantAddButton: { minHeight: 44, paddingHorizontal: 13, borderRadius: 9, backgroundColor: "#2563EB", justifyContent: "center" }, merchantAddText: { color: "#FFFFFF", fontWeight: "900" }, merchantHint: { marginTop: 7, color: "#64748B", fontSize: 11 },
   screen: {
     flex: 1,
     backgroundColor: "#F7F8FA",

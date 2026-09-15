@@ -22,6 +22,7 @@ import {
   siNotion,
   siAppletv,
 } from "simple-icons";
+import Svg, { Path } from "react-native-svg";
 
 import {
   useSubscriptions,
@@ -127,12 +128,8 @@ function BrandIcon({
     );
   }
 
-  const IconSvg = require("react-native-svg").default;
-  const Path =
-    require("react-native-svg").Path;
-
   return (
-    <IconSvg
+    <Svg
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -142,7 +139,7 @@ function BrandIcon({
         d={icon.path}
         fill={`#${icon.hex}`}
       />
-    </IconSvg>
+    </Svg>
   );
 }
 

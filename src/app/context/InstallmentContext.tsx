@@ -1,4 +1,5 @@
 import AsyncStorage from "../../lib/userStorage";
+import { useCards } from "./CardContext";
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 
 const STORAGE_KEY = "@butce_installments";
@@ -9,6 +10,7 @@ export type Installment = {
   cardId: string;
   totalInstallments: number;
   paidInstallments: number;
+  installmentAmount: number;
   note?: string;
   updatedAt: string;
 };
@@ -42,12 +44,14 @@ function normalize(item: Partial<Installment>): Installment {
     cardId: typeof item.cardId === "string" ? item.cardId : "",
     totalInstallments,
     paidInstallments: Math.min(totalInstallments, toWholeNumber(item.paidInstallments)),
+    installmentAmount: Math.max(0, Number(item.installmentAmount) || 0),
     note: typeof item.note === "string" && item.note.trim() ? item.note.trim() : undefined,
     updatedAt: typeof item.updatedAt === "string" ? item.updatedAt : new Date().toISOString(),
   };
 }
 
 export function InstallmentProvider({ children }: { children: ReactNode }) {
+  const { changeUsedLimit } = useCards();
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -74,14 +78,21 @@ export function InstallmentProvider({ children }: { children: ReactNode }) {
     addInstallment: async (input) => {
       const installment = normalize({ ...input, id: createId(), updatedAt: new Date().toISOString() });
       if (!installment.name || !installment.cardId) throw new Error("Taksit adı ve kart seçimi zorunludur.");
+      if (installment.installmentAmount <= 0) throw new Error("Taksit tutarı zorunludur.");
+      await changeUsedLimit(installment.cardId, installment.installmentAmount * installment.totalInstallments);
       setInstallments((current) => [installment, ...current]);
     },
     updateInstallment: async (id, input) => {
       const next = normalize({ ...input, id, updatedAt: new Date().toISOString() });
       if (!next.name || !next.cardId) throw new Error("Taksit adı ve kart seçimi zorunludur.");
+      const previous = installments.find((item) => item.id === id);
+      if (previous) await changeUsedLimit(previous.cardId, -(previous.installmentAmount * previous.totalInstallments));
+      await changeUsedLimit(next.cardId, next.installmentAmount * next.totalInstallments);
       setInstallments((current) => current.map((item) => item.id === id ? next : item));
     },
     deleteInstallment: async (id) => {
+      const previous = installments.find((item) => item.id === id);
+      if (previous) await changeUsedLimit(previous.cardId, -(previous.installmentAmount * previous.totalInstallments));
       setInstallments((current) => current.filter((item) => item.id !== id));
     },
     setPaidInstallments: async (id, paidInstallments) => {
@@ -91,7 +102,7 @@ export function InstallmentProvider({ children }: { children: ReactNode }) {
           : item
       ));
     },
-  }), [installments]);
+  }), [installments, changeUsedLimit]);
 
   return <InstallmentContext.Provider value={value}>{children}</InstallmentContext.Provider>;
 }

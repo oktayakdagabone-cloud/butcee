@@ -17,6 +17,7 @@ export type Category = {
   type: CategoryType;
   color: string;
   icon: string;
+  merchants?: string[];
 };
 
 type NewCategory = Omit<
@@ -43,6 +44,7 @@ type CategoryContextType = {
   getCategoriesByType: (
     type: CategoryType
   ) => Category[];
+  addMerchant: (categoryId: string, merchant: string) => void;
 };
 
 const CategoryContext =
@@ -168,6 +170,7 @@ export function CategoryProvider({
                 icon:
                   category.icon ??
                   DEFAULT_ICON,
+                merchants: Array.isArray(category.merchants) ? category.merchants.filter((item: unknown) => typeof item === "string") : [],
               })
             );
 
@@ -331,6 +334,15 @@ export function CategoryProvider({
     );
   }
 
+  function addMerchant(categoryId: string, merchant: string) {
+    const name = merchant.trim();
+    if (!name) return;
+    setCategories((current) => current.map((category) => category.id === categoryId ? {
+      ...category,
+      merchants: Array.from(new Set([...(category.merchants ?? []), name])),
+    } : category));
+  }
+
   return (
     <CategoryContext.Provider
       value={{
@@ -339,6 +351,7 @@ export function CategoryProvider({
         updateCategory,
         deleteCategory,
         getCategoriesByType,
+        addMerchant,
       }}
     >
       {children}

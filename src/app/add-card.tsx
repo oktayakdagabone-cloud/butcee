@@ -728,6 +728,18 @@ export default function AddCardScreen() {
           ))}
         </View>
 
+        <TextInput
+          value={selectedColor}
+          onChangeText={(value) => {
+            const color = value.startsWith("#") ? value : `#${value}`;
+            if (/^#[0-9a-fA-F]{0,6}$/.test(color)) setSelectedColor(color);
+          }}
+          placeholder="#16A34A"
+          placeholderTextColor="#94A3B8"
+          style={styles.colorInput}
+          maxLength={7}
+        />
+
         <Pressable
           style={styles.saveButton}
           onPress={handleSave}
@@ -961,7 +973,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  colorRow: {
+    colorRow: {
     flexDirection: "row",
     gap: 12,
     flexWrap: "wrap",
@@ -986,8 +998,11 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
+
     elevation: 3,
   },
+
+  colorInput: { minHeight: 46, marginTop: 10, borderWidth: 1, borderColor: "#D7DEE6", borderRadius: 10, paddingHorizontal: 12, color: COLORS.text },
 
   colorCheck: {
     color: "#FFFFFF",
