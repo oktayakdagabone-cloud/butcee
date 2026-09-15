@@ -1,12 +1,51 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import Svg, { Circle, Path } from "react-native-svg";
 
-/* Her biri görsel olarak net ayırt edilen ana renkler. */
-const PALETTE = [
-  "#17202A", "#64748B", "#92400E", "#B91C1C", "#E11D48",
-  "#DB2777", "#C026D3", "#7E22CE", "#6D28D9", "#4F46E5",
-  "#1D4ED8", "#0284C7", "#0891B2", "#0F766E", "#047857",
-  "#16A34A", "#65A30D", "#A3A30A", "#CA8A04", "#EA580C",
-];
+const SIZE = 232;
+const CENTER = SIZE / 2;
+const RADIUS = 108;
+const HUE_STEPS = 72;
+const SATURATION_RINGS = 10;
+
+function hslToHex(hue: number, saturation: number, lightness: number) {
+  const s = saturation / 100;
+  const l = lightness / 100;
+  const chroma = (1 - Math.abs(2 * l - 1)) * s;
+  const section = hue / 60;
+  const x = chroma * (1 - Math.abs((section % 2) - 1));
+  const [red, green, blue] =
+    section < 1 ? [chroma, x, 0] :
+    section < 2 ? [x, chroma, 0] :
+    section < 3 ? [0, chroma, x] :
+    section < 4 ? [0, x, chroma] :
+    section < 5 ? [x, 0, chroma] :
+    [chroma, 0, x];
+  const match = l - chroma / 2;
+  const toHex = (value: number) =>
+    Math.round((value + match) * 255).toString(16).padStart(2, "0");
+
+  return `#${toHex(red)}${toHex(green)}${toHex(blue)}`.toUpperCase();
+}
+
+function pointAt(angle: number, radius: number) {
+  return {
+    x: CENTER + Math.cos(angle) * radius,
+    y: CENTER + Math.sin(angle) * radius,
+  };
+}
+
+function wedgePath(start: number, end: number, inner: number, outer: number) {
+  const outerStart = pointAt(start, outer);
+  const outerEnd = pointAt(end, outer);
+
+  if (inner === 0) {
+    return `M ${CENTER} ${CENTER} L ${outerStart.x} ${outerStart.y} A ${outer} ${outer} 0 0 1 ${outerEnd.x} ${outerEnd.y} Z`;
+  }
+
+  const innerEnd = pointAt(end, inner);
+  const innerStart = pointAt(start, inner);
+  return `M ${outerStart.x} ${outerStart.y} A ${outer} ${outer} 0 0 1 ${outerEnd.x} ${outerEnd.y} L ${innerEnd.x} ${innerEnd.y} A ${inner} ${inner} 0 0 0 ${innerStart.x} ${innerStart.y} Z`;
+}
 
 type ColorPaletteProps = {
   selected: string;
@@ -19,47 +58,72 @@ export function ColorPalette({
   onSelect,
   compact = false,
 }: ColorPaletteProps) {
-  const options = PALETTE.includes(selected) ? PALETTE : [selected, ...PALETTE];
+  const scale = compact ? 0.78 : 1;
 
   return (
-    <View style={styles.grid}>
-      {options.map((color) => {
-        const active = selected === color;
+    <View style={styles.wrapper}>
+      <Svg
+        width={SIZE * scale}
+        height={SIZE * scale}
+        viewBox={`0 0 ${SIZE} ${SIZE}`}
+        accessibilityLabel="Dairesel renk çarkı"
+      >
+        {Array.from({ length: SATURATION_RINGS }, (_, ring) =>
+          Array.from({ length: HUE_STEPS }, (_, hueIndex) => {
+            const start = -Math.PI / 2 + (hueIndex / HUE_STEPS) * Math.PI * 2;
+            const end = -Math.PI / 2 + ((hueIndex + 1) / HUE_STEPS) * Math.PI * 2;
+            const color = hslToHex(
+              (hueIndex / HUE_STEPS) * 360,
+              ((ring + 1) / SATURATION_RINGS) * 100,
+              58 - ring * 0.9
+            );
 
-        return (
-          <Pressable
-            key={color}
-            accessibilityRole="button"
-            accessibilityLabel={`${color} rengini seç`}
-            style={[
-              styles.option,
-              compact && styles.optionCompact,
-              { backgroundColor: color },
-              active && styles.active,
-            ]}
-            onPress={() => onSelect(color)}
-          >
-            {active && <Text style={compact ? styles.checkCompact : styles.check}>✓</Text>}
-          </Pressable>
-        );
-      })}
+            return (
+              <Path
+                key={`${ring}-${hueIndex}`}
+                d={wedgePath(
+                  start,
+                  end,
+                  (ring / SATURATION_RINGS) * RADIUS,
+                  ((ring + 1) / SATURATION_RINGS) * RADIUS
+                )}
+                fill={color}
+                onPress={() => onSelect(color)}
+              />
+            );
+          })
+        )}
+
+        <Circle
+          cx={CENTER}
+          cy={CENTER}
+          r={15}
+          fill={selected}
+          stroke="#FFFFFF"
+          strokeWidth={3}
+          pointerEvents="none"
+        />
+      </Svg>
+
+      <View style={[styles.selected, { backgroundColor: selected }]}>
+        <Text style={styles.selectedText}>Seçili renk</Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  option: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
+  wrapper: { alignItems: "flex-start" },
+  selected: {
+    marginTop: 8,
+    minWidth: 116,
+    minHeight: 32,
+    paddingHorizontal: 10,
+    borderRadius: 9,
+    borderWidth: 1,
     borderColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  optionCompact: { width: 26, height: 26, borderRadius: 13 },
-  active: { borderColor: "#17202A", borderWidth: 3 },
-  check: { color: "#FFFFFF", fontSize: 16, fontWeight: "900" },
-  checkCompact: { color: "#FFFFFF", fontSize: 12, fontWeight: "900" },
+  selectedText: { color: "#FFFFFF", fontSize: 12, fontWeight: "800" },
 });
