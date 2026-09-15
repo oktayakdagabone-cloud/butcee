@@ -79,20 +79,20 @@ export function InstallmentProvider({ children }: { children: ReactNode }) {
       const installment = normalize({ ...input, id: createId(), updatedAt: new Date().toISOString() });
       if (!installment.name || !installment.cardId) throw new Error("Taksit adı ve kart seçimi zorunludur.");
       if (installment.installmentAmount <= 0) throw new Error("Taksit tutarı zorunludur.");
-      await changeUsedLimit(installment.cardId, installment.installmentAmount * installment.totalInstallments);
+      await changeUsedLimit(installment.cardId, installment.installmentAmount);
       setInstallments((current) => [installment, ...current]);
     },
     updateInstallment: async (id, input) => {
       const next = normalize({ ...input, id, updatedAt: new Date().toISOString() });
       if (!next.name || !next.cardId) throw new Error("Taksit adı ve kart seçimi zorunludur.");
       const previous = installments.find((item) => item.id === id);
-      if (previous) await changeUsedLimit(previous.cardId, -(previous.installmentAmount * previous.totalInstallments));
-      await changeUsedLimit(next.cardId, next.installmentAmount * next.totalInstallments);
+      if (previous) await changeUsedLimit(previous.cardId, -previous.installmentAmount);
+      await changeUsedLimit(next.cardId, next.installmentAmount);
       setInstallments((current) => current.map((item) => item.id === id ? next : item));
     },
     deleteInstallment: async (id) => {
       const previous = installments.find((item) => item.id === id);
-      if (previous) await changeUsedLimit(previous.cardId, -(previous.installmentAmount * previous.totalInstallments));
+      if (previous) await changeUsedLimit(previous.cardId, -previous.installmentAmount);
       setInstallments((current) => current.filter((item) => item.id !== id));
     },
     setPaidInstallments: async (id, paidInstallments) => {
