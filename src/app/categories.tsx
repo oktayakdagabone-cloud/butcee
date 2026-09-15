@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { ColorPalette } from "./components/ColorPalette";
 
 import {
   CategoryType,
@@ -416,33 +417,11 @@ export default function CategoriesScreen() {
           Kategori Rengi
         </Text>
 
-        <View style={styles.colorGrid}>
-          {colors.map((color) => (
-            <Pressable
-              key={color}
-              style={[
-                styles.colorOption,
-                {
-                  backgroundColor:
-                    color,
-                },
-                newColor === color &&
-                  styles.colorSelected,
-              ]}
-              onPress={() =>
-                setNewColor(color)
-              }
-            >
-              {newColor === color && (
-                <Text
-                  style={styles.check}
-                >
-                  ✓
-                </Text>
-              )}
-            </Pressable>
-          ))}
-        </View>
+        <Text style={styles.colorHint}>
+          Bir renge dokunarak seç.
+        </Text>
+
+        <ColorPalette selected={newColor} onSelect={setNewColor} />
 
         <Text style={styles.optionLabel}>
           Kategori İkonu
@@ -564,45 +543,15 @@ export default function CategoriesScreen() {
                         Renk
                       </Text>
 
-                      <View
-                        style={
-                          styles.colorGrid
-                        }
-                      >
-                        {colors.map(
-                          (color) => (
-                            <Pressable
-                              key={color}
-                              style={[
-                                styles.colorOptionSmall,
-                                {
-                                  backgroundColor:
-                                    color,
-                                },
-                                editColor ===
-                                  color &&
-                                  styles.colorSelected,
-                              ]}
-                              onPress={() =>
-                                setEditColor(
-                                  color
-                                )
-                              }
-                            >
-                              {editColor ===
-                                color && (
-                                <Text
-                                  style={
-                                    styles.checkSmall
-                                  }
-                                >
-                                  ✓
-                                </Text>
-                              )}
-                            </Pressable>
-                          )
-                        )}
-                      </View>
+                      <Text style={styles.colorHint}>
+                        Bir renge dokunarak seç.
+                      </Text>
+
+                      <ColorPalette
+                        selected={editColor}
+                        onSelect={setEditColor}
+                        compact
+                      />
 
                       <Text
                         style={
@@ -1099,6 +1048,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: "#17202A",
+  },
+
+  colorHint: {
+    marginTop: -4,
+    marginBottom: 10,
+    color: "#7A8492",
+    fontSize: 12,
   },
 
   colorGrid: {

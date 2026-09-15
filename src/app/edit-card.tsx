@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { PaymentIcon } from "react-native-payment-card-icons";
+import { ColorPalette } from "./components/ColorPalette";
 
 import {
   CardNetwork,
@@ -904,43 +905,14 @@ export default function EditCardScreen() {
           Kart rengi
         </Text>
 
-        <View
-          style={styles.colorRow}
-        >
-          {cardColors.map(
-            (color) => (
-              <Pressable
-                key={color}
-                onPress={() =>
-                  setSelectedColor(
-                    color
-                  )
-                }
-                style={[
-                  styles.colorCircle,
-                  {
-                    backgroundColor:
-                      color,
-                  },
-                  selectedColor ===
-                    color &&
-                    styles.selectedColorCircle,
-                ]}
-              >
-                {selectedColor ===
-                  color && (
-                  <Text
-                    style={
-                      styles.colorCheck
-                    }
-                  >
-                    ✓
-                  </Text>
-                )}
-              </Pressable>
-            )
-          )}
-        </View>
+        <Text style={styles.colorHint}>
+          Bir renge dokunarak seç.
+        </Text>
+
+        <ColorPalette
+          selected={selectedColor}
+          onSelect={setSelectedColor}
+        />
 
         <Pressable
           style={
@@ -1015,6 +987,13 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginTop: 24,
     marginBottom: 8,
+  },
+
+  colorHint: {
+    marginTop: -3,
+    marginBottom: 10,
+    color: COLORS.secondary,
+    fontSize: 12,
   },
 
   helperText: {

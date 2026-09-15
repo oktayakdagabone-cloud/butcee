@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { PaymentIcon } from "react-native-payment-card-icons";
+import { ColorPalette } from "./components/ColorPalette";
 
 import {
   CardNetwork,
@@ -694,50 +695,13 @@ export default function AddCardScreen() {
           Kart rengi
         </Text>
 
-        <View style={styles.colorRow}>
-          {cardColors.map((color) => (
-            <Pressable
-              key={color}
-              onPress={() =>
-                setSelectedColor(
-                  color
-                )
-              }
-              style={[
-                styles.colorCircle,
-                {
-                  backgroundColor:
-                    color,
-                },
-                selectedColor ===
-                  color &&
-                  styles.selectedColorCircle,
-              ]}
-            >
-              {selectedColor ===
-                color && (
-                <Text
-                  style={
-                    styles.colorCheck
-                  }
-                >
-                  ✓
-                </Text>
-              )}
-            </Pressable>
-          ))}
-        </View>
+        <Text style={styles.colorHint}>
+          Bir renge dokunarak seç.
+        </Text>
 
-        <TextInput
-          value={selectedColor}
-          onChangeText={(value) => {
-            const color = value.startsWith("#") ? value : `#${value}`;
-            if (/^#[0-9a-fA-F]{0,6}$/.test(color)) setSelectedColor(color);
-          }}
-          placeholder="#16A34A"
-          placeholderTextColor="#94A3B8"
-          style={styles.colorInput}
-          maxLength={7}
+        <ColorPalette
+          selected={selectedColor}
+          onSelect={setSelectedColor}
         />
 
         <Pressable
@@ -1000,6 +964,13 @@ const styles = StyleSheet.create({
     },
 
     elevation: 3,
+  },
+
+  colorHint: {
+    marginTop: -3,
+    marginBottom: 10,
+    color: COLORS.secondary,
+    fontSize: 12,
   },
 
   colorInput: { minHeight: 46, marginTop: 10, borderWidth: 1, borderColor: "#D7DEE6", borderRadius: 10, paddingHorizontal: 12, color: COLORS.text },
