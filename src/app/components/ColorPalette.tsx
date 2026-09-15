@@ -60,50 +60,86 @@ export function ColorPalette({
 }: ColorPaletteProps) {
   const scale = compact ? 0.78 : 1;
 
+  function selectColorAt(
+    locationX: number,
+    locationY: number
+  ) {
+    const x = locationX / scale - CENTER;
+    const y = locationY / scale - CENTER;
+    const distance = Math.sqrt(x * x + y * y);
+
+    if (distance > RADIUS) {
+      return;
+    }
+
+    const hue =
+      ((Math.atan2(y, x) * 180) / Math.PI + 90 + 360) %
+      360;
+
+    onSelect(
+      hslToHex(
+        hue,
+        Math.max(8, (distance / RADIUS) * 100),
+        58 - Math.min(distance / RADIUS, 1) * 9
+      )
+    );
+  }
+
   return (
     <View style={styles.wrapper}>
-      <Svg
-        width={SIZE * scale}
-        height={SIZE * scale}
-        viewBox={`0 0 ${SIZE} ${SIZE}`}
-        accessibilityLabel="Dairesel renk çarkı"
+      <View
+        accessibilityRole="button"
+        accessibilityLabel="Dairesel renk çarkı: istediğin renge dokun"
+        style={{ width: SIZE * scale, height: SIZE * scale }}
+        onStartShouldSetResponder={() => true}
+        onResponderRelease={(event) =>
+          selectColorAt(
+            event.nativeEvent.locationX,
+            event.nativeEvent.locationY
+          )
+        }
       >
-        {Array.from({ length: SATURATION_RINGS }, (_, ring) =>
-          Array.from({ length: HUE_STEPS }, (_, hueIndex) => {
-            const start = -Math.PI / 2 + (hueIndex / HUE_STEPS) * Math.PI * 2;
-            const end = -Math.PI / 2 + ((hueIndex + 1) / HUE_STEPS) * Math.PI * 2;
-            const color = hslToHex(
-              (hueIndex / HUE_STEPS) * 360,
-              ((ring + 1) / SATURATION_RINGS) * 100,
-              58 - ring * 0.9
-            );
-
-            return (
-              <Path
-                key={`${ring}-${hueIndex}`}
-                d={wedgePath(
-                  start,
-                  end,
-                  (ring / SATURATION_RINGS) * RADIUS,
-                  ((ring + 1) / SATURATION_RINGS) * RADIUS
-                )}
-                fill={color}
-                onPress={() => onSelect(color)}
-              />
-            );
-          })
-        )}
-
-        <Circle
-          cx={CENTER}
-          cy={CENTER}
-          r={15}
-          fill={selected}
-          stroke="#FFFFFF"
-          strokeWidth={3}
+        <Svg
+          width={SIZE * scale}
+          height={SIZE * scale}
+          viewBox={`0 0 ${SIZE} ${SIZE}`}
           pointerEvents="none"
-        />
-      </Svg>
+        >
+          {Array.from({ length: SATURATION_RINGS }, (_, ring) =>
+            Array.from({ length: HUE_STEPS }, (_, hueIndex) => {
+              const start = -Math.PI / 2 + (hueIndex / HUE_STEPS) * Math.PI * 2;
+              const end = -Math.PI / 2 + ((hueIndex + 1) / HUE_STEPS) * Math.PI * 2;
+              const color = hslToHex(
+                (hueIndex / HUE_STEPS) * 360,
+                ((ring + 1) / SATURATION_RINGS) * 100,
+                58 - ring * 0.9
+              );
+
+              return (
+                <Path
+                  key={`${ring}-${hueIndex}`}
+                  d={wedgePath(
+                    start,
+                    end,
+                    (ring / SATURATION_RINGS) * RADIUS,
+                    ((ring + 1) / SATURATION_RINGS) * RADIUS
+                  )}
+                  fill={color}
+                />
+              );
+            })
+          )}
+
+          <Circle
+            cx={CENTER}
+            cy={CENTER}
+            r={15}
+            fill={selected}
+            stroke="#FFFFFF"
+            strokeWidth={3}
+          />
+        </Svg>
+      </View>
 
       <View style={[styles.selected, { backgroundColor: selected }]}>
         <Text style={styles.selectedText}>Seçili renk</Text>
