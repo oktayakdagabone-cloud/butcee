@@ -21,8 +21,10 @@ import {
   siStrava,
   siNotion,
   siAppletv,
+  siMax,
 } from "simple-icons";
 import Svg, { Path } from "react-native-svg";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import {
   useSubscriptions,
@@ -99,9 +101,52 @@ function getSimpleIcon(iconName: string) {
     "simple:strava": siStrava,
     "simple:notion": siNotion,
     "simple:appletv": siAppletv,
+    "simple:max": siMax,
   };
 
   return icons[iconName] ?? null;
+}
+
+const subscriptionCategoryIcons: Record<string, string> = {
+  video: "video-outline",
+  music: "music-note",
+  cloud: "cloud-outline",
+  software: "application-braces-outline",
+  gaming: "gamepad-variant-outline",
+  education: "school-outline",
+  news: "newspaper-variant-outline",
+  fitness: "dumbbell",
+  telecom: "phone-outline",
+  security: "shield-check-outline",
+  other: "shape-outline",
+};
+
+const fallbackBrandIcons: Record<string, string> = {
+  "simple:amazon": "shopping-outline",
+  "simple:disneyplus": "castle",
+  "simple:openai": "robot-outline",
+  "simple:microsoft365": "microsoft",
+  "simple:adobe": "image-edit-outline",
+  "simple:xbox": "gamepad-variant",
+  other: "dots-horizontal",
+};
+
+function SubscriptionCategoryIcon({
+  icon,
+  color,
+  size = 18,
+}: {
+  icon: string;
+  color: string;
+  size?: number;
+}) {
+  return (
+    <MaterialCommunityIcons
+      name={(subscriptionCategoryIcons[icon] || "shape-outline") as any}
+      size={size}
+      color={color}
+    />
+  );
 }
 
 function BrandIcon({
@@ -117,14 +162,11 @@ function BrandIcon({
 
   if (!icon) {
     return (
-      <Text
-        style={{
-          fontSize: size,
-          color,
-        }}
-      >
-        🔄
-      </Text>
+      <MaterialCommunityIcons
+        name={(fallbackBrandIcons[iconName] || "shape-outline") as any}
+        size={size}
+        color={color}
+      />
     );
   }
 
@@ -494,18 +536,11 @@ export default function AddSubscriptionScreen() {
                 size={30}
               />
             ) : (
-              <Text
-                style={[
-                  styles.fallbackIcon,
-                  {
-                    color:
-                      subscriptionColor,
-                  },
-                ]}
-              >
-                {selectedCategory?.icon ||
-                  "↻"}
-              </Text>
+              <SubscriptionCategoryIcon
+                icon={selectedCategory?.icon || "other"}
+                color={subscriptionColor}
+                size={30}
+              />
             )}
           </View>
 
@@ -697,13 +732,10 @@ export default function AddSubscriptionScreen() {
                       },
                     ]}
                   >
-                    <Text
-                      style={
-                        styles.categoryEmoji
-                      }
-                    >
-                      {category.icon}
-                    </Text>
+                    <SubscriptionCategoryIcon
+                      icon={category.icon}
+                      color={category.color}
+                    />
                   </View>
 
                   <Text
