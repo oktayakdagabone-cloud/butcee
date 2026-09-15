@@ -8,6 +8,30 @@ const COLORS = { bg: "#F7F8FA", card: "#FFFFFF", text: "#17202A", secondary: "#7
 
 function onlyNumber(value: string) { return value.replace(/\D/g, ""); }
 
+function formatAmountInput(value: string) {
+  if (!value) return "";
+
+  const normalized = value.replace(/\./g, "").replace(/[^\d,]/g, "");
+  if (!normalized) return "";
+
+  const commaIndex = normalized.indexOf(",");
+  let integerPart = commaIndex >= 0 ? normalized.slice(0, commaIndex) : normalized;
+  const decimalPart = commaIndex >= 0 ? normalized.slice(commaIndex + 1).replace(/\D/g, "").slice(0, 2) : "";
+
+  integerPart = integerPart.replace(/^0+(?=\d)/, "") || "0";
+  const formattedInteger = Number(integerPart).toLocaleString("tr-TR");
+
+  return commaIndex >= 0 ? `${formattedInteger},${decimalPart}` : formattedInteger;
+}
+
+function parseAmount(value: string) {
+  return Number(value.replace(/\./g, "").replace(",", ".").replace(/[^\d.-]/g, "")) || 0;
+}
+
+function formatSavedAmount(value: number) {
+  return value.toLocaleString("tr-TR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+
 export default function InstallmentsScreen() {
   const { cards } = useCards();
   const { installments, addInstallment, updateInstallment, deleteInstallment, setPaidInstallments } = useInstallments();
@@ -25,13 +49,13 @@ export default function InstallmentsScreen() {
 
   function resetForm() { setEditing(null); setName(""); setCardId(""); setTotal(""); setPaid(""); setInstallmentAmount(""); setNote(""); }
   function beginEdit(item: Installment) {
-    setEditing(item); setName(item.name); setCardId(item.cardId); setTotal(String(item.totalInstallments)); setPaid(String(item.paidInstallments)); setInstallmentAmount(String(item.installmentAmount)); setNote(item.note ?? "");
+    setEditing(item); setName(item.name); setCardId(item.cardId); setTotal(String(item.totalInstallments)); setPaid(String(item.paidInstallments)); setInstallmentAmount(formatSavedAmount(item.installmentAmount)); setNote(item.note ?? "");
   }
 
   async function save() {
     const totalInstallments = Number(total);
     const paidInstallments = Number(paid || "0");
-    const amount = Number(installmentAmount.replace(",", "."));
+    const amount = parseAmount(installmentAmount);
     if (!name.trim() || !cardId || amount <= 0 || !Number.isInteger(totalInstallments) || totalInstallments < 1 || !Number.isInteger(paidInstallments) || paidInstallments < 0 || paidInstallments > totalInstallments) {
       Alert.alert("Bilgileri kontrol et", "Ad, kart, toplam taksit ve ödenen taksit sayısını geçerli gir."); return;
     }
@@ -56,8 +80,8 @@ export default function InstallmentsScreen() {
       <Text style={styles.label}>İşlem yapılacak kart</Text>
       {cards.length === 0 ? <Text style={styles.emptyText}>Önce Kartlar menüsünden bir kart eklemelisin.</Text> : <View style={styles.cardChoices}>{cards.filter((card) => card.type === "credit").map((card) => <Pressable key={card.id} onPress={() => setCardId(card.id)} style={[styles.choice, card.id === cardId && styles.choiceActive]}><Text style={[styles.choiceText, card.id === cardId && styles.choiceTextActive]}>{card.bankName} · {card.name}</Text></Pressable>)}</View>}
       <View style={styles.numberRow}><View style={styles.numberField}><Text style={styles.label}>Toplam taksit</Text><TextInput value={total} onChangeText={(value) => setTotal(onlyNumber(value))} keyboardType="number-pad" placeholder="12" placeholderTextColor="#94A3B8" style={styles.input} /></View><View style={styles.numberField}><Text style={styles.label}>Ödenen taksit</Text><TextInput value={paid} onChangeText={(value) => setPaid(onlyNumber(value))} keyboardType="number-pad" placeholder="0" placeholderTextColor="#94A3B8" style={styles.input} /></View></View>
-      <Text style={styles.label}>Toplam harcama tutarı (₺)</Text><TextInput value={installmentAmount} onChangeText={setInstallmentAmount} keyboardType="decimal-pad" placeholder="Örn. 15.000" placeholderTextColor="#94A3B8" style={styles.input} />
-      {!!Number(installmentAmount.replace(",", ".")) && !!Number(total) && <Text style={styles.helper}>Aylık taksit: {(Number(installmentAmount.replace(",", ".")) / Number(total)).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺ · toplam tutar kart limitinden düşer.</Text>}
+      <Text style={styles.label}>Toplam harcama tutarı (₺)</Text><TextInput value={installmentAmount} onChangeText={(value) => setInstallmentAmount(formatAmountInput(value))} keyboardType="decimal-pad" placeholder="Örn. 15.000" placeholderTextColor="#94A3B8" style={styles.input} />
+      {!!parseAmount(installmentAmount) && !!Number(total) && <Text style={styles.helper}>Aylık taksit: {(parseAmount(installmentAmount) / Number(total)).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺ · toplam tutar kart limitinden düşer.</Text>}
       <Text style={styles.helper}>Kalan taksit: {Math.max(0, Number(total || 0) - Number(paid || 0))}</Text>
       <Text style={styles.label}>Not (isteğe bağlı)</Text><TextInput value={note} onChangeText={setNote} multiline placeholder="Ek bilgi..." placeholderTextColor="#94A3B8" style={[styles.input, styles.note]} />
       <View style={styles.formActions}><Pressable disabled={saving} onPress={save} style={styles.save}><Text style={styles.saveText}>{saving ? "Kaydediliyor..." : editing ? "Değişiklikleri Kaydet" : "Taksiti Kaydet"}</Text></Pressable>{editing && <Pressable disabled={saving} onPress={resetForm} style={styles.cancel}><Text style={styles.cancelText}>Vazgeç</Text></Pressable>}</View>
