@@ -1,29 +1,12 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-function hslToHex(hue: number, saturation: number, lightness: number) {
-  const s = saturation / 100;
-  const l = lightness / 100;
-  const chroma = (1 - Math.abs(2 * l - 1)) * s;
-  const segment = hue / 60;
-  const x = chroma * (1 - Math.abs((segment % 2) - 1));
-  const [red, green, blue] =
-    segment < 1 ? [chroma, x, 0] :
-    segment < 2 ? [x, chroma, 0] :
-    segment < 3 ? [0, chroma, x] :
-    segment < 4 ? [0, x, chroma] :
-    segment < 5 ? [x, 0, chroma] :
-    [chroma, 0, x];
-  const match = l - chroma / 2;
-  const toHex = (value: number) =>
-    Math.round((value + match) * 255).toString(16).padStart(2, "0");
-
-  return `#${toHex(red)}${toHex(green)}${toHex(blue)}`.toUpperCase();
-}
-
-const PALETTE = Array.from(
-  { length: 72 },
-  (_, index) => hslToHex((index * 5) % 360, 78, 48 + (index % 3) * 7)
-);
+/* Her biri görsel olarak net ayırt edilen ana renkler. */
+const PALETTE = [
+  "#17202A", "#64748B", "#92400E", "#B91C1C", "#E11D48",
+  "#DB2777", "#C026D3", "#7E22CE", "#6D28D9", "#4F46E5",
+  "#1D4ED8", "#0284C7", "#0891B2", "#0F766E", "#047857",
+  "#16A34A", "#65A30D", "#A3A30A", "#CA8A04", "#EA580C",
+];
 
 type ColorPaletteProps = {
   selected: string;
