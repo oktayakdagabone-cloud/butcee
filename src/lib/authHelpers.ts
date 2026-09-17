@@ -8,9 +8,18 @@ export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 export const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 export function authRedirectUrl(path: "auth" | "reset-password") {
-  const base = Platform.OS === "web" && process.env.NODE_ENV !== "development"
-    ? (process.env.EXPO_BASE_URL ?? "") : "";
-  return Linking.createURL(`${base.replace(/\/$/, "")}/${path}`);
+  if (Platform.OS === "web" && typeof window !== "undefined") {
+    // Expo Linking can fall back to its dev server when no native scheme is
+    // available. Auth callbacks must always return to the origin serving the
+    // deployed web app (Cloudflare Pages, Sites, or a local dev server).
+    const basePath = process.env.EXPO_BASE_URL ?? "";
+    return `${window.location.origin}${basePath.replace(/\/$/, "")}/${path}`;
+  }
+  if (Platform.OS === "web" && process.env.NODE_ENV !== "development") {
+    const basePath = process.env.EXPO_BASE_URL ?? "";
+    return Linking.createURL(`${basePath.replace(/\/$/, "")}/${path}`);
+  }
+  return Linking.createURL(`/${path}`);
 }
 
 export async function readRememberedEmail() {
