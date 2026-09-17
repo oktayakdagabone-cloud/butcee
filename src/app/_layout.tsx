@@ -2,8 +2,10 @@ import {
   Stack,
   router,
 } from "expo-router";
+import { useEffect } from "react";
 import { useFonts } from "expo-font";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+const materialCommunityFontAsset = require("@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf");
 
 import { useState } from "react";
 
@@ -337,6 +339,18 @@ function Header() {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const src = String(materialCommunityFontAsset);
+    const style = document.createElement("style");
+    // react-native-vector-icons uses the hashed asset path (without the
+    // extension) as the web font-family. Register that exact family so glyphs
+    // render on static hosts as well as during local development.
+    const family = src.replace(/\.(otf|ttf)(\?.*)?$/i, "");
+    style.textContent = `@font-face{font-family:"${family}";src:url("${src}") format("truetype");font-weight:normal;font-style:normal;font-display:block;}`;
+    document.head.appendChild(style);
+    return () => style.remove();
+  }, []);
   const [fontsLoaded] = useFonts(MaterialCommunityIcons.font);
 
   if (!fontsLoaded) {
