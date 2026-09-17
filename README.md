@@ -1,5 +1,7 @@
 # Welcome to your Expo app 👋
 
+E-posta kayıt/giriş sistemi ve Cloudflare Pages yayını için [kurulum notlarına](supabase/AUTH-SETUP.md) bakın.
+
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
 ## Get started

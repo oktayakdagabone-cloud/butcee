@@ -13,7 +13,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -27,10 +26,8 @@ import { NotificationProvider } from "./context/NotificationContext";
 import { InstallmentProvider } from "./context/InstallmentContext";
 import { SubscriptionProvider } from "./context/SubscriptionContext";
 import { TransactionProvider } from "./context/TransactionContext";
-import { setActiveStorageUser } from "../lib/userStorage";
-import { supabase } from "../lib/supabase";
-
-const PERSONAL_ACCOUNT_EMAIL = "oktayakdagabone@gmail.com";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import AuthScreen from "./auth";
 
 type NavigationItem = {
   href:
@@ -91,6 +88,7 @@ const navigationItems: NavigationItem[] = [
 ];
 
 function Header() {
+  const { signOut } = useAuth();
   const { width } = useWindowDimensions();
 
   const [isMenuOpen, setIsMenuOpen] =
@@ -208,6 +206,9 @@ function Header() {
             </Text>
           </Pressable>
         )}
+        <Pressable accessibilityRole="button" onPress={() => { setIsMenuOpen(false); void signOut(); }} style={styles.desktopAddButton}>
+          <Text style={styles.menuText}>Çıkış yap</Text>
+        </Pressable>
       </View>
 
       <Modal
@@ -346,17 +347,14 @@ export default function RootLayout() {
     );
   }
 
-  return <ProtectedLayout />;
+  return <AuthProvider><ProtectedLayout /></AuthProvider>;
 }
 
 function ProtectedLayout() {
-  const [userId, setUserId] = useState<string | null>(null);
-
-  if (!userId) {
-    return <PersonalLock onUnlock={setUserId} />;
-  }
-
-  setActiveStorageUser(userId);
+  const { user, loading, recovering } = useAuth();
+  if (loading) return <View style={styles.fontLoading}><Text>Yükleniyor...</Text></View>;
+  if (!user || recovering) return <AuthScreen />;
+  const userId = user.id;
 
   return (
     <NotificationProvider key={userId}>
@@ -384,68 +382,6 @@ function ProtectedLayout() {
         </AccountProvider>
       </CategoryProvider>
     </NotificationProvider>
-  );
-}
-
-function PersonalLock({ onUnlock }: { onUnlock: (userId: string) => void }) {
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function unlock() {
-    if (!password) {
-      setError("Şifreni gir.");
-      return;
-    }
-
-    try {
-      setBusy(true);
-      setError("");
-      const { data, error: loginError } = await supabase.auth.signInWithPassword({
-        email: PERSONAL_ACCOUNT_EMAIL,
-        password,
-      });
-      if (loginError || !data.user) throw loginError ?? new Error("Giriş yapılamadı.");
-      onUnlock(data.user.id);
-    } catch (_error) {
-      setError("Şifre yanlış veya bağlantı kurulamadı.");
-      setPassword("");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <View style={styles.lockScreen}>
-      <View style={styles.lockCard}>
-        <Image
-          source={require("../../assets/images/butce-logo.png")}
-          style={styles.lockLogoImage}
-          resizeMode="contain"
-        />
-        <Text style={styles.lockTitle}>Şifre gerekli</Text>
-        <Text style={styles.lockText}>Devam etmek için şifreni gir.</Text>
-        <View style={styles.lockInputRow}>
-          <TextInput
-            value={password}
-            onChangeText={(value) => { setPassword(value); setError(""); }}
-            onSubmitEditing={unlock}
-            secureTextEntry={!showPassword}
-            placeholder="Şifre"
-            placeholderTextColor="#94A3B8"
-            style={styles.lockInput}
-          />
-          <Pressable onPress={() => setShowPassword((value) => !value)} style={styles.lockShowButton}>
-            <Text style={styles.lockShowText}>{showPassword ? "Gizle" : "Göster"}</Text>
-          </Pressable>
-        </View>
-        {!!error && <Text style={styles.lockError}>{error}</Text>}
-        <Pressable disabled={busy} onPress={unlock} style={[styles.lockButton, busy && styles.lockButtonDisabled]}>
-          <Text style={styles.lockButtonText}>{busy ? "Kontrol ediliyor..." : "Giriş yap"}</Text>
-        </Pressable>
-      </View>
-    </View>
   );
 }
 
@@ -643,18 +579,5 @@ const styles =
       color: "#94A3B8",
     },
 
-    lockScreen: { flex: 1, backgroundColor: "#F7F8FA", alignItems: "center", justifyContent: "center", padding: 24 },
     fontLoading: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#F7F8FA" },
-    lockCard: { width: "100%", maxWidth: 420, padding: 24, borderRadius: 20, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E2E8F0" },
-    lockLogoImage: { width: 150, height: 92, alignSelf: "center" },
-    lockTitle: { marginTop: 24, fontSize: 24, fontWeight: "900", color: "#17202A" },
-    lockText: { marginTop: 6, color: "#64748B" },
-    lockInputRow: { minHeight: 52, marginTop: 18, borderWidth: 1, borderColor: "#E2E8F0", borderRadius: 12, flexDirection: "row", alignItems: "center" },
-    lockInput: { flex: 1, minHeight: 50, paddingHorizontal: 14, color: "#17202A" },
-    lockShowButton: { minHeight: 50, paddingHorizontal: 14, alignItems: "center", justifyContent: "center" },
-    lockShowText: { color: "#2563EB", fontWeight: "800", fontSize: 13 },
-    lockError: { marginTop: 10, color: "#B91C1C", fontWeight: "700" },
-    lockButton: { minHeight: 52, marginTop: 18, borderRadius: 12, backgroundColor: "#16A34A", alignItems: "center", justifyContent: "center" },
-    lockButtonText: { color: "#FFFFFF", fontWeight: "900" },
-    lockButtonDisabled: { opacity: 0.65 },
   });

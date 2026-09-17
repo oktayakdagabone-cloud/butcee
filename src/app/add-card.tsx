@@ -1,6 +1,5 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -215,6 +214,9 @@ function MoneyInput({
 
 export default function AddCardScreen() {
   const { addCard } = useCards();
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const [name, setName] = useState("");
   const [bankName, setBankName] =
@@ -277,6 +279,8 @@ export default function AddCardScreen() {
   };
 
   const handleSave = async () => {
+    if (savingRef.current) return;
+    setSaveError(null);
     const trimmedName =
       name.trim();
 
@@ -304,77 +308,59 @@ export default function AddCardScreen() {
       Number(minimumPaymentRate);
 
     if (!trimmedName) {
-      Alert.alert(
-        "Eksik bilgi",
-        "Kart adı gir."
-      );
+      setSaveError("Kart adı gir.");
       return;
     }
 
     if (!trimmedBank) {
-      Alert.alert(
-        "Eksik bilgi",
-        "Banka adı gir."
-      );
+      setSaveError("Banka adı gir.");
       return;
     }
 
     if (
       type === "credit" &&
-      limit <= 0
+      (!Number.isFinite(limit) || limit <= 0)
     ) {
-      Alert.alert(
-        "Eksik bilgi",
-        "Kredi kartı limiti 0'dan büyük olmalı."
-      );
+      setSaveError("Kredi kartı limiti 0'dan büyük olmalı.");
       return;
     }
 
     if (
       type === "credit" &&
-      usedLimit > limit
+      (!Number.isFinite(usedLimit) || usedLimit > limit)
     ) {
-      Alert.alert(
-        "Hatalı değer",
-        "Kullanılan limit toplam limitten büyük olamaz."
-      );
+      setSaveError("Kullanılan limit toplam limitten büyük olamaz.");
       return;
     }
 
     if (
-      statement < 1 ||
-      statement > 31
+      type === "credit" &&
+      (!Number.isInteger(statement) || statement < 1 || statement > 31)
     ) {
-      Alert.alert(
-        "Hatalı değer",
-        "Ekstre günü 1-31 arasında olmalı."
-      );
+      setSaveError("Ekstre günü 1-31 arasında olmalı.");
       return;
     }
 
     if (
-      due < 1 ||
-      due > 31
+      type === "credit" &&
+      (!Number.isInteger(due) || due < 1 || due > 31)
     ) {
-      Alert.alert(
-        "Hatalı değer",
-        "Son ödeme günü 1-31 arasında olmalı."
-      );
+      setSaveError("Son ödeme günü 1-31 arasında olmalı.");
       return;
     }
 
     if (
-      minimumRate < 0 ||
-      minimumRate > 100
+      type === "credit" &&
+      (!Number.isFinite(minimumRate) || minimumRate < 0 || minimumRate > 100)
     ) {
-      Alert.alert(
-        "Hatalı değer",
-        "Asgari ödeme oranı 0-100 arasında olmalı."
-      );
+      setSaveError("Asgari ödeme oranı 0-100 arasında olmalı.");
       return;
     }
 
-    await addCard({
+    savingRef.current = true;
+    setIsSaving(true);
+    try {
+      await addCard({
       name: trimmedName,
       bankName: trimmedBank,
       type,
@@ -387,8 +373,8 @@ export default function AddCardScreen() {
         type === "credit"
           ? usedLimit
           : 0,
-      statementDay: statement,
-      dueDay: due,
+      statementDay: type === "credit" ? statement : 0,
+      dueDay: type === "credit" ? due : 0,
       minimumPaymentRate:
         type === "credit"
           ? minimumRate
@@ -396,7 +382,13 @@ export default function AddCardScreen() {
       color: selectedColor,
     });
 
-    router.replace("/cards");
+      router.replace("/cards");
+    } catch {
+      setSaveError("Kart kaydedilemedi. Lütfen tekrar dene.");
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -704,8 +696,17 @@ export default function AddCardScreen() {
           onSelect={setSelectedColor}
         />
 
+        {saveError && (
+          <Text accessibilityRole="alert" style={styles.saveError}>
+            {saveError}
+          </Text>
+        )}
+
         <Pressable
-          style={styles.saveButton}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSaving, busy: isSaving }}
+          disabled={isSaving}
+          style={[styles.saveButton, isSaving && { opacity: 0.6 }]}
           onPress={handleSave}
         >
           <Text
@@ -713,7 +714,7 @@ export default function AddCardScreen() {
               styles.saveButtonText
             }
           >
-            Kartı Kaydet
+            {isSaving ? "Kaydediliyor..." : "Kartı Kaydet"}
           </Text>
         </Pressable>
       </View>
@@ -722,6 +723,11 @@ export default function AddCardScreen() {
 }
 
 const styles = StyleSheet.create({
+  saveError: {
+    color: "#B91C1C",
+    fontSize: 14,
+    marginTop: 16,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.bg,
