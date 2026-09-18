@@ -1,8 +1,9 @@
 import AsyncStorage from "../../lib/userStorage";
 import { useCards } from "./CardContext";
-import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 const STORAGE_KEY = "@butce_installments";
+const DEBT_RECONCILIATION_KEY = "@butce_installment_debt_reconciled_v1";
 
 export type Installment = {
   id: string;
@@ -51,9 +52,10 @@ function normalize(item: Partial<Installment>): Installment {
 }
 
 export function InstallmentProvider({ children }: { children: ReactNode }) {
-  const { changeUsedLimit } = useCards();
+  const { cards, changeUsedLimit } = useCards();
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const reconciliationStarted = useRef(false);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
@@ -72,6 +74,53 @@ export function InstallmentProvider({ children }: { children: ReactNode }) {
       console.error("Taksitler kaydedilemedi:", error)
     );
   }, [installments, loaded]);
+
+  // Older releases overwrote a card's used limit whenever a new expense or
+  // installment was saved. Bring existing installment debt back into the card
+  // once, without reducing any separately recorded card spending.
+  useEffect(() => {
+    if (!loaded || reconciliationStarted.current) return;
+
+    const activeInstallments = installments.filter(
+      (item) => item.paidInstallments < item.totalInstallments
+    );
+
+    if (activeInstallments.length > 0 && cards.length === 0) return;
+
+    reconciliationStarted.current = true;
+
+    async function reconcileExistingInstallmentDebt() {
+      try {
+        if (await AsyncStorage.getItem(DEBT_RECONCILIATION_KEY)) return;
+
+        const outstandingByCard = activeInstallments.reduce<Record<string, number>>(
+          (totals, item) => {
+            const remaining = item.totalInstallments - item.paidInstallments;
+            const outstanding = (item.installmentAmount / item.totalInstallments) * remaining;
+            totals[item.cardId] = (totals[item.cardId] ?? 0) + outstanding;
+            return totals;
+          },
+          {}
+        );
+
+        await Promise.all(
+          Object.entries(outstandingByCard).map(async ([cardId, outstanding]) => {
+            const card = cards.find((item) => item.id === cardId);
+            if (!card || card.type !== "credit") return;
+            const missingDebt = Math.max(0, outstanding - card.usedLimit);
+            if (missingDebt > 0) await changeUsedLimit(cardId, missingDebt);
+          })
+        );
+
+        await AsyncStorage.setItem(DEBT_RECONCILIATION_KEY, "true");
+      } catch (error) {
+        reconciliationStarted.current = false;
+        console.error("Eski taksit borçları karta yansıtılamadı:", error);
+      }
+    }
+
+    reconcileExistingInstallmentDebt();
+  }, [cards, changeUsedLimit, installments, loaded]);
 
   const value = useMemo<InstallmentContextValue>(() => ({
     installments,
