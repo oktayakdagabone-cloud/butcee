@@ -1137,14 +1137,19 @@ export function CardProvider({
                 return card;
               }
 
+              // `amount` is a delta: card expenses and installments both add
+              // to the current debt, while edits, deletions and payments pass
+              // a negative delta. Replacing usedLimit here made a later card
+              // expense hide the debt created by an existing installment.
               const next =
                 Math.min(
                   Math.max(
                     0,
                     roundMoney(
-                      safeNumber(
-                        amount
-                      )
+                      card.usedLimit +
+                        safeNumber(
+                          amount
+                        )
                     )
                   ),
                   card.limit
